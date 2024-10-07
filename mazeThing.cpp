@@ -7,6 +7,7 @@ using std::vector;
 using std::cin;
 using std::cout;
 
+// for output colored map
 void SetColor(int color = 7) {
 	HANDLE hConsole;
 	hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -36,6 +37,7 @@ public:
 			throw std::out_of_range("Queue is empty");
 		}
 		T item = data[frontIndex];
+		// update frontIndex and size of vector 
 		frontIndex++;
 		size--;
 		
@@ -93,16 +95,16 @@ vector<Node> Maze::findShortestPath() {
 	vector<vector<Node>> parent(m, vector<Node>(n));
 	Queue<Node> q;
 
-	q.push(start);
-	visited[start.x][start.y] = 1;
+	q.push(start); // initialize the queue
+	visited[start.x][start.y] = 1; // set start been visited
 
 	while (!q.empty()) {
-		Node current = q.pop();
+		Node current = q.pop(); // the first element of queue (FIFO)
 		if (current == end) {
 			return backTracePath(parent);
 		}
 
-		for (int i = 0; i < 4; ++i) {
+		for (int i = 0; i < 4; ++i) { // for four directions
 			int nx = current.x + dx[i];
 			int ny = current.y + dy[i];
 			if (
@@ -111,19 +113,20 @@ vector<Node> Maze::findShortestPath() {
 				!visited[nx][ny] && // not visited yet
 				maze[nx][ny] != 'x' // not wall
 			) {
-				q.push(Node(nx, ny));
-				visited[nx][ny] = 1;
-				parent[nx][ny] = current;
+				q.push(Node(nx, ny)); // add to queue
+				visited[nx][ny] = 1; // mark as visited
+				parent[nx][ny] = current; // set parent
 			}
 		}
 	}
-	return {}; // No path found
+	return {}; // no path found
 }
 
 vector<Node> Maze::backTracePath(const vector<vector<Node>>& parent) {
 	vector<Node> path;
 	Node current = end;
 
+	// back trace from target to source
 	while (!(current == start)) {
 		path.push_back(Node(current.x + 1, current.y + 1)); // Convert back to 1-indexed
 		current = parent[current.x][current.y];
@@ -132,10 +135,11 @@ vector<Node> Maze::backTracePath(const vector<vector<Node>>& parent) {
 	path.push_back(Node(start.x + 1, start.y + 1)); // Add start cell
 	reverse(path.begin(), path.end());
 
+	// for visualize the routed map
 	for (int i = 2; i < path.size(); ++i) {
-		if (i < 11) {
+		if (i < 11) { // number (1~9)
 			maze[path[i - 1].x - 1][path[i - 1].y - 1] = char(47 + i);
-		} else {
+		} else { // alphabet (A~)
 			maze[path[i - 1].x - 1][path[i - 1].y - 1] = char(54 + i);
 		}
 	}
@@ -164,6 +168,7 @@ int main() {
 
 	Maze maze(m, n);
 
+	// key in source, target, obstacles
 	for (int row = 1; row <= m; ++row) {
 		int col;
 		while (cin >> col && col != 0) {
@@ -179,6 +184,7 @@ int main() {
 		cout << "No path found.\n";
 		return 0;
 	}
+	// output path
 	for (const auto& cell : path) {
 		cout << "(" << cell.x << "," << cell.y << ")";
 	}
