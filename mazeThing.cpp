@@ -128,7 +128,8 @@ vector<Node> Maze::backTracePath(const vector<vector<Node>>& parent) {
 
 	// back trace from target to source
 	while (!(current == start)) {
-		path.push_back(Node(current.x + 1, current.y + 1)); // Convert back to 1-indexed
+		// Convert back to 1-indexed
+		path.push_back(Node(current.x + 1, current.y + 1));
 		current = parent[current.x][current.y];
 	}
 
