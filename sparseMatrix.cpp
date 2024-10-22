@@ -1,151 +1,155 @@
 #include <iostream>
-#include <vector>
 #include <iomanip>
 
-using std::vector;
 using std::cout;
 using std::cin;
 
-// 非零元素節點結構
 struct Node {
-    int col;     // 行號
-    int value;   // 值
-    Node* next;  // 下一個節點
-    
-    Node(int c, int v) : col(c), value(v), next(nullptr) {}
+	int index; // in which col
+	int value;
+	Node* next;
+	Node(int c, int v) : index(c), value(v), next(nullptr) {}
 };
 
 class SparseMatrix {
 private:
-    int rows, cols;          // 矩陣維度
-    vector<Node*> rowHeads;  // 每列的表頭
+    int rows, cols; // size of the matrix
+    Node** rowHeads; // stores datas of the sparse matrix 
+public:
+    SparseMatrix(int m, int n) : rows(m), cols(n) {
+        rowHeads = new Node*[m];  // Dynamically allocate array
+        for(int i = 0; i < m; i++) {
+            rowHeads[i] = nullptr;
+        }
+    }
     
-    // 釋放記憶體的輔助函數
-    void clear() {
-        for (Node* head : rowHeads) {
+    ~SparseMatrix() {
+        for (int i = 0; i < rows; i++) {
+            Node* head = rowHeads[i];
             while (head) {
                 Node* temp = head;
                 head = head->next;
                 delete temp;
             }
         }
-        rowHeads.clear();
-    }
-
-public:
-    // 建構子
-    SparseMatrix(int m, int n) : rows(m), cols(n) {
-        rowHeads.resize(m, nullptr);
+        delete[] rowHeads;  // Delete the array
     }
     
-    // 解構子
-    ~SparseMatrix() {
-        clear();
-    }
-    
-    // 讀入矩陣資料
+    // register sparse matrix data 
     void input() {
         for (int i = 0; i < rows; i++) {
-            while (true) {
-                int c, v;
-                cin >> c;
-                if (c == 0) break;
-                cin >> v;
-                
-                // 建立新節點
-                Node* newNode = new Node(c-1, v);  // 轉換為0-based索引
-                
-                // 插入節點（保持行號順序）
-                if (!rowHeads[i] || rowHeads[i]->col > c-1) {
-                    newNode->next = rowHeads[i];
-                    rowHeads[i] = newNode;
-                } else {
-                    Node* curr = rowHeads[i];
-                    while (curr->next && curr->next->col < c-1) {
-                        curr = curr->next;
-                    }
-                    newNode->next = curr->next;
-                    curr->next = newNode;
-                }
+            while (1) {
+                int col, value;
+                cin >> col;
+                if (!col || col > cols) break;
+                cin >> value;
+                if (!value) continue;
+                // row <i> col <col - 1> is <value>
+                insert(i, col - 1, value);
             }
         }
+        return;
     }
     
-    // 矩陣加法
+    // addition of matrices
     SparseMatrix operator+(const SparseMatrix& other) const {
         if (rows != other.rows || cols != other.cols) {
-            throw std::runtime_error("Matrix dimensions do not match for addition");
+            cout << "ERROR: Matrix dimensions do not match for multiplication\n";
+            return SparseMatrix(0, 0);
         }
         
-        SparseMatrix result(rows, cols);
+        SparseMatrix resultMatrix(rows, cols);
         
         for (int i = 0; i < rows; i++) {
-            Node* p1 = rowHeads[i];
-            Node* p2 = other.rowHeads[i];
+            Node* A = rowHeads[i];
+            Node* B = other.rowHeads[i];
+            Node* dummyNode = new Node(-1, 0);
+            Node* C = dummyNode;
             
-            while (p1 || p2) {
-                if (!p2 || (p1 && p1->col < p2->col)) {
-                    result.insert(i, p1->col, p1->value);
-                    p1 = p1->next;
-                } else if (!p1 || (p2 && p2->col < p1->col)) {
-                    result.insert(i, p2->col, p2->value);
-                    p2 = p2->next;
-                } else {  // p1->col == p2->col
-                    int sum = p1->value + p2->value;
-                    if (sum != 0) {
-                        result.insert(i, p1->col, sum);
-                    }
-                    p1 = p1->next;
-                    p2 = p2->next;
+            while (A && B) {
+                if (A->index == B->index) {
+                    int sum = A->value + B->value;
+                    C->next = new Node(A->index, sum);
+                    A = A->next;
+                    B = B->next;
+                } else if (A->index < B->index) {
+                    C->next = new Node(A->index, A->value);
+                    A = A->next;
+                } else {
+                    C->next = new Node(B->index, B->value);
+                    B = B->next;
                 }
+                C = C->next;
             }
+            while (A) {
+                C->next = new Node(A->index, A->value);
+                A = A->next;
+                C = C->next;
+            }
+            while (B) {
+                C->next = new Node(B->index, B->value);
+                B = B->next;
+                C = C->next;
+            }
+
+            resultMatrix.rowHeads[i] = dummyNode->next;
+            delete dummyNode;
         }
         
-        return result;
+        return resultMatrix;
     }
     
-    // 矩陣乘法
+    // multiplication of matrices
     SparseMatrix operator*(const SparseMatrix& other) const {
         if (cols != other.rows) {
-            throw std::runtime_error("Matrix dimensions do not match for multiplication");
+            cout << "ERROR: Matrix dimensions do not match for multiplication\n";
+            return SparseMatrix(0, 0);
         }
-        
+    
         SparseMatrix result(rows, other.cols);
-        
+        auto other_T = other.transpose();
+    
         for (int i = 0; i < rows; i++) {
-            for (int j = 0; j < other.cols; j++) {
+            Node* dummyPointer = new Node(-1, 0);
+            Node* c = dummyPointer;
+    
+            for (int j = 0; j < other_T.rows; j++) {
                 int sum = 0;
-                Node* row = rowHeads[i];
-                
-                while (row) {
-                    Node* col = other.rowHeads[row->col];
-                    while (col) {
-                        if (col->col == j) {
-                            sum += row->value * col->value;
-                            break;
-                        }
-                        col = col->next;
+                Node* a = rowHeads[i];
+                Node* b = other_T.rowHeads[j];
+    
+                while (a && b) {
+                    if (a->index == b->index) {
+                        sum += a->value * b->value;
+                        a = a->next;
+                        b = b->next;
+                    } else if (a->index < b->index) {
+                        a = a->next;
+                    } else {
+                        b = b->next;
                     }
-                    row = row->next;
                 }
-                
-                if (sum != 0) {
-                    result.insert(i, j, sum);
+    
+                if (sum) {
+                    c->next = new Node(j, sum);
+                    c = c->next;
                 }
             }
+            result.rowHeads[i] = dummyPointer->next;
+            delete dummyPointer;
         }
-        
         return result;
     }
     
-    // 矩陣轉置
+    // operating transpose to a matrix
     SparseMatrix transpose() const {
-        SparseMatrix result(cols, rows);
+        SparseMatrix result(cols, rows); // change row and col
         
         for (int i = 0; i < rows; i++) {
             Node* curr = rowHeads[i];
             while (curr) {
-                result.insert(curr->col, i, curr->value);
+				// insert [row][col] to [col][row]
+                result.insert(curr->index, i, curr->value);
                 curr = curr->next;
             }
         }
@@ -153,29 +157,34 @@ public:
         return result;
     }
     
-    // 插入元素的輔助函數
+    // insertion of input
     void insert(int row, int col, int value) {
         Node* newNode = new Node(col, value);
-        
-        if (!rowHeads[row] || rowHeads[row]->col > col) {
+
+        if (!rowHeads[row] || rowHeads[row]->index > col) {
+            // the new Node would be the head
             newNode->next = rowHeads[row];
             rowHeads[row] = newNode;
-        } else {
+        }
+        else {
+            // else it would be somewhere else
             Node* curr = rowHeads[row];
-            while (curr->next && curr->next->col < col) {
+            while (curr->next && curr->next->index < col) {
+                // find where the new Node should belong
                 curr = curr->next;
             }
             newNode->next = curr->next;
             curr->next = newNode;
         }
+        return;
     }
     
-    // 一般格式輸出
+    // output as a rectangular form
     void printRegular() const {
         for (int i = 0; i < rows; i++) {
             Node* curr = rowHeads[i];
             for (int j = 0; j < cols; j++) {
-                if (curr && curr->col == j) {
+                if (curr && curr->index == j) {
                     cout << std::setw(4) << curr->value;
                     curr = curr->next;
                 } else {
@@ -186,59 +195,71 @@ public:
         }
     }
     
-    // 列表格式輸出（包含記憶體使用量）
+    // output every elements in a row
     void printList() const {
         cout << "Dimensions: " << rows << " x " << cols << "\n";
         int memoryUnits = 0;
         
         for (int i = 0; i < rows; i++) {
-            cout << "Row " << i+1 << ": ";
-            Node* curr = rowHeads[i];
-            while (curr) {
-                cout << "(" << curr->col+1 << "," << curr->value << ") ";
-                memoryUnits += 3;  // col + value + pointer
-                curr = curr->next;
+            cout << i + 1 << ": ";
+            Node* current = rowHeads[i];
+            while (current) {
+                cout << "(" << current->index + 1 << "," << current->value << ")";
+                memoryUnits += 3; // col + value + pointer
+                current = current->next;
+                if (current) cout << " -> ";
             }
             cout << "\n";
-            memoryUnits += 1;  // row head pointer
+            memoryUnits += 1; // row head pointer
         }
-        memoryUnits += 2;  // rows and cols
+        memoryUnits += 2; // rows and cols
         
         cout << "Memory units used: " << memoryUnits << "\n";
     }
 };
 
 int main() {
-    int rows = 5, cols = 6;
-    
-    // 1. 配置指標陣列（第一維）
-    int** mtrx = new int*[rows];
-    
-    // 2. 配置每一列的空間（第二維）
-    for(int i = 0; i < rows; i++) {
-        mtrx[i] = new int[cols];
-    }
-    
-    // 3. 填入資料
-    for(int i = 0; i < rows; i++) {
-        for(int j = 0; j < cols; j++) {
-            mtrx[i][j] = 2*j + i;
-        }
-    }
-    
-    // 4. 輸出資料
-    for(int i = 0; i < rows; i++) {
-        for(int j = 0; j < cols; j++) {
-            cout << mtrx[i][j] << " ";
-        }
-        cout << "\n";
-    }
-    
-    // 5. 釋放記憶體（注意順序！）
-    for(int i = 0; i < rows; i++) {
-        delete[] mtrx[i];  // 先釋放每一列
-    }
-    delete[] mtrx;        // 再釋放指標陣列
-    
-    return 0;
+	int rows = 3, cols = 3;
+	cin >> rows >> cols;
+	SparseMatrix A(rows, cols);
+	A.input();
+	
+	cout << "A\n";
+	A.printList();
+
+	cin >> rows >> cols;
+	SparseMatrix B(rows, cols);
+	B.input();
+
+	cout << "B\n";
+	B.printList();
+
+	auto C = A + B;
+	cout << "summation:\nC\n";
+	C.printList();
+
+	auto D = A * B;
+	cout << "multiplication\nD\n";
+	D.printList();
+
+	auto E = A.transpose();
+	cout << "transpose\nE\n";
+	E.printList();
+	
+	return 0;
 }
+
+/*
+4 3
+2 1 0 1 3 3 4 0 1 5 3 6 0 3 4 2 8 0
+
+A
+Dimensions: 4 x 3
+1: (2,1)
+2: (1,3) -> (3,4)
+3: (1,5) -> (3,6)
+4: (2,8) -> (3,4)
+Memory units used: 27
+3 4
+2 8 0 2 1 3 2 0 1 4 3 7 4 6 0
+*/
