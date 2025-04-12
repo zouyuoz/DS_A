@@ -1,0 +1,88 @@
+後晴
+前奏
+| Dm  Gm  | Bb  C   | Dm  Gm  | Bb  A   |
+| Dm  Gm  | Bb  C   | Dm  Gm  | Bb  Am  G#dim |
+| Gm  C   |
+主歌1
+| Bb  C   | Dm  Am  | Bb  C   | Dm  Am  |
+| Bb  C   | Dm  Am  | Bb  C   | F       |
+前導副歌1
+| F/A     | Bb      | C   A/C#| Dm      |
+| Gm      | Am      | Bb  C   | F    A  |
+副歌1
+| Bb      | C       | Am  A   | Dm  Cm  |
+| Bb      | C   A/C#| Dm  A/C#| F/C G/B |
+| Gm      | Bbm C   |
+間奏
+| Dm  Gm  | Bb  C   | Dm  Gm  | Bb  A   |
+| Dm  Gm  | Bb  C   | Dm  Gm  | Bb  Am  G#dim |
+| Gm  C   |
+主歌2
+| Bb  C   | Dm  Am  | Bb  C   | Dm  Am  |
+| Bb  C   | Dm  Am  | Bb  C   | F       |
+前導副歌2
+| F/A     | Bb      | C   A/C#| Dm      |
+| Gm      | Am      | Bb  C   | F    A  |
+副歌2
+| Bb      | C       | Am  A   | Dm  Cm  |
+| Bb      | C   A/C#| Dm  A/C#| F/C G/B |
+| Gm      | Bbm C   |
+間奏2
+| Bb  C   | Am  Dm  | Bb  A   | Dm  Cm  F7 |
+| Bb  C   | Am  Dm  | Gm  Am  | Bb  C   |
+間奏3
+| F       | A       | Dm      | Cm  F7  |
+| Bb  C   | Am  Dm  | Bbm     | A       | A       |
+副歌3
+| Bb      | C       | Am  A   | Dm  Cm  |
+| Bb      | C   A/C#| Dm  A/C#| F/C G/B |
+| Gm      | Bbm C   |
+尾奏
+| Dm  Gm  | Bb  C   | Dm  Gm  | Bb  A   |
+| Dm  Gm  | Bb  C   | Dm  Gm  | Bb  Am  G#dim |
+| Gm  C   | Bb      | end
+
+define float max(num1, num2)
+	if num1 > num2 then return num1
+	else return num2
+end max
+
+define float abs(num)
+	if num < 0 then return -num
+	else return num
+end abs
+
+define float EuclideanDist(p1, p2)
+	return power(power(p1.x-p1.x, 2) + power(p1.y-p2.y, 2), 0.5)
+	# ((p1.x-p1.x)^2 + (p1.y-p2.y)^2)^0.5
+end EuclideanDist
+
+define member of square center() as point type
+	shift both sx and sy by e/2
+define member of square sCx = square.center().x
+define member of square sCy = square.center().y
+
+define bool edgeCase(circle, square)
+	let farDist = max(abs(cx-sx), abs(cy-sy))
+	if farDist <= (e + r)/2 then
+		return true
+	else return false
+end edgeCase
+
+define bool cornerCase(circle, squareCorner)
+	return EuclideanDist(circle.center, squareCorner) <= r
+end cornerCase
+
+define bool collidetec(circle, square)
+	if abs(cx - sCx) < e/2 or abs(cy - sCy) < e/2 then
+		return edgeCase(circle, square)
+	else
+		let corners[4] = four coordinates of the square
+		foreach corner
+			if cornerCase(circle, corner) == true then
+				return true
+			end if
+		end foreach
+		return false
+	end if
+end collidetec

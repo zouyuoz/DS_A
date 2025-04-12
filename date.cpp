@@ -110,15 +110,11 @@ Date::Date() { scanf_s("%d/%d/%d", &y, &m, &d); }
 Date::Date(int y, int m, int d): y(y), m(m), d(d) {}
 
 int main() {
-	cout << "first input: enter a date\n";
-	Date date_A;
-	date_A.outputDateWithWeek();
+	while (1) {
+		DateSub();
+	}
+	
 
-	cout << "second input: subtraction of two dates\n";
-	DateSub();
-
-	cout << "third input: addition to a date\n";
-	DateAdd();
 	
 	return 0;
 }
