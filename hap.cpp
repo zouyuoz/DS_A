@@ -47,7 +47,7 @@ void findMax3(int* a, int len) {
 	int max = 0;
 	for (int mask=0; mask<1<<len; ++mask) {
 		// for example, len = 5 then
-		// mask range from 00000 to 11111
+		// mask range from 00000 to 11111 
 		int sum = 0;
 		int maskCopy = mask;
 		int bit = 0;
